@@ -1,3 +1,4 @@
+# spatial_index.py
 import math
 from scipy.spatial import KDTree
 from threading import Lock
@@ -25,24 +26,19 @@ class SpatialIndex:
 
     def build_index(self):
         with self.lock:
-            if not self.kdtree and self.locations:
+            if self.locations:
                 self.kdtree = KDTree(self.locations)
 
     def find_users_within_radius(self, latitude, longitude, radius_miles=15):
         with self.lock:
-            if not self.kdtree:
+            if self.kdtree is None:
                 self.build_index()
-
-            if not self.kdtree:  # Still no KDTree (no users)
+            if self.kdtree is None:  # No users available
                 return []
 
-            # Convert miles to coordinates (approximate)
-            # 1 degree latitude ≈ 69 miles, 1 degree longitude varies with latitude
-            radius_lat = radius_miles / 69.0
-            radius_lon = radius_miles / (math.cos(math.radians(latitude)) * 69.0)
+            # Approximate conversion: 1 degree ≈ 69 miles.
+            radius_deg = radius_miles / 69.0
 
-            # Query the KDTree
-            indices = self.kdtree.query_ball_point([latitude, longitude],
-                                                 max(radius_lat, radius_lon))
-
+            # Query the KDTree to get indices within the radius.
+            indices = self.kdtree.query_ball_point([latitude, longitude], radius_deg)
             return [self.users[i] for i in indices]

@@ -1,35 +1,37 @@
-import math
+# models.py
 
 class Item:
-    def __init__(self, item_id, name, category, value):
+    def __init__(self, item_id: int, name: str, category: str, value: float = None):
         self.id = item_id
         self.name = name
         self.category = category
-        self.value = value  # Estimated value
+        self.value = value  # Estimated value; if not provided, it can be evaluated later.
 
 class User:
-    def __init__(self, user_id, name, latitude, longitude):
+    def __init__(self, user_id: int, name: str, latitude: float, longitude: float):
         self.id = user_id
         self.name = name
         self.location = (latitude, longitude)
-        self.items_to_give = []  # List of Item objects
-        self.items_to_receive = []  # List of Item objects or categories
+        self.items_to_give = []       # List of Item objects the user is offering.
+        self.items_to_receive = []    # List of Item objects or category strings the user wants.
 
-    def add_item_to_give(self, item):
+    def add_item_to_give(self, item: Item):
         self.items_to_give.append(item)
 
     def add_item_to_receive(self, item_or_category):
         self.items_to_receive.append(item_or_category)
 
-    def remove_item_to_give(self, item_id):
+    def remove_item_to_give(self, item_id: int):
         self.items_to_give = [item for item in self.items_to_give if item.id != item_id]
 
     def remove_item_to_receive(self, item_id_or_category):
         if isinstance(item_id_or_category, str):
-            # It's a category
-            self.items_to_receive = [item for item in self.items_to_receive
-                                   if not (isinstance(item, str) and item == item_id_or_category)]
+            self.items_to_receive = [
+                want for want in self.items_to_receive
+                if not (isinstance(want, str) and want == item_id_or_category)
+            ]
         else:
-            # It's an item ID
-            self.items_to_receive = [item for item in self.items_to_receive
-                                   if not (hasattr(item, 'id') and item.id == item_id_or_category)]
+            self.items_to_receive = [
+                want for want in self.items_to_receive
+                if not (hasattr(want, 'id') and want.id == item_id_or_category)
+            ]
