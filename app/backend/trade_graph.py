@@ -28,6 +28,8 @@ class TradeGraph:
         """Construct graph edges based on potential reciprocal trades between users."""
         self.edges = defaultdict(list)
         for user_id, user in self.user_nodes.items():
+            if not self.spatial_index:
+                continue
             nearby_users = self.spatial_index.find_users_within_radius(*user.location)
             for nearby_user in nearby_users:
                 if nearby_user.id == user_id:
@@ -36,14 +38,16 @@ class TradeGraph:
                     for want_item in nearby_user.items_to_receive:
                         # Match if the recipient's want is a category match or an item match with similar value.
                         if (isinstance(want_item, str) and want_item == give_item.category) or \
-                           (hasattr(want_item, 'category') and want_item.category == give_item.category and
+                           (not isinstance(want_item, str) and hasattr(want_item, 'category') and
+                            want_item.category == give_item.category and
                             abs(want_item.value - give_item.value) <= 0.2 * give_item.value):
                             # Now check if the reverse possibility exists.
                             has_reverse = False
                             for give_item2 in nearby_user.items_to_give:
                                 for want_item2 in user.items_to_receive:
                                     if (isinstance(want_item2, str) and want_item2 == give_item2.category) or \
-                                       (hasattr(want_item2, 'category') and want_item2.category == give_item2.category and
+                                       (not isinstance(want_item2, str) and hasattr(want_item2, 'category') and
+                                        want_item2.category == give_item2.category and
                                         abs(want_item2.value - give_item2.value) <= 0.2 * give_item2.value):
                                         has_reverse = True
                                         break
@@ -119,7 +123,7 @@ class TradeGraph:
 
     def execute_trade_cycle(self, cycle):
         """
-        Execute a trade cycle by updating users’ inventories.
+        Execute a trade cycle by updating users' inventories.
         For each user in the cycle, select the best matching item to trade to the next user.
         """
         trade_items = []
@@ -134,18 +138,25 @@ class TradeGraph:
             for item in giver.items_to_give:
                 for want in receiver.items_to_receive:
                     if (isinstance(want, str) and want == item.category) or \
-                       (hasattr(want, 'category') and want.category == item.category and
+                       (not isinstance(want, str) and hasattr(want, 'category') and
+                        want.category == item.category and
                         abs(want.value - item.value) <= 0.2 * item.value):
-                        diff = abs(item.value - (want.value if hasattr(want, 'value') else item.value))
+                        if isinstance(want, str):
+                            want_value = item.value  # Use item's value as reference if want is just a category
+                        else:
+                            want_value = want.value
+                        diff = abs(item.value - want_value)
                         if diff < best_diff:
                             best_diff = diff
                             best_item = item
                             best_match = want
-            if best_item:
-                trade_items.append((giver_id, receiver_id, best_item.id))
-                giver.remove_item_to_give(best_item.id)
-                if isinstance(best_match, str):
-                    receiver.remove_item_to_receive(best_match)
-                else:
-                    receiver.remove_item_to_receive(best_match.id)
+                            if best_item is not None:
+                                if not hasattr(best_item, 'id'):
+                                    continue
+                                trade_items.append((giver_id, receiver_id, best_item.id))
+                                giver.remove_item_to_give(best_item.id)
+                                if isinstance(best_match, str):
+                                    receiver.remove_item_to_receive(best_match)
+                                elif best_match is not None and hasattr(best_match, 'id'):
+                                    receiver.remove_item_to_receive(best_match.id)
         return trade_items

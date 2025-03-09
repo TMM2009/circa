@@ -1,7 +1,7 @@
 # models.py
 
 class Item:
-    def __init__(self, item_id: int, name: str, category: str, value: float = None):
+    def __init__(self, item_id: int, name: str, category: str, value: float = 0.0):
         self.id = item_id
         self.name = name
         self.category = category
