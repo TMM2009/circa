@@ -40,5 +40,5 @@ class SpatialIndex:
             radius_deg = radius_miles / 69.0
 
             # Query the KDTree to get indices within the radius.
-            indices = self.kdtree.query_ball_point([latitude, longitude], radius_deg)
+            indices = self.kdtree.query_ball_point([latitude, longitude], radius_deg, p=2)
             return [self.users[i] for i in indices]

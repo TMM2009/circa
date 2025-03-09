@@ -33,5 +33,5 @@ class User:
         else:
             self.items_to_receive = [
                 want for want in self.items_to_receive
-                if not (hasattr(want, 'id') and want.id == item_id_or_category)
+                if not (isinstance(want, Item) and want.id == item_id_or_category)
             ]
